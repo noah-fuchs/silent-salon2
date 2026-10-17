@@ -1,6 +1,11 @@
+import { Suspense } from "react";
 import { BookingWidget } from "@/components/salon/booking-widget";
 
-export default async function EmbedSalonPage({
+export function generateStaticParams() {
+  return [{ slug: "atelier-lumiere" }, { slug: "urban-craft" }];
+}
+
+async function EmbedSalonContent({
   params,
   searchParams,
 }: {
@@ -27,5 +32,22 @@ export default async function EmbedSalonPage({
         </p>
       )}
     </div>
+  );
+}
+
+export default function EmbedSalonPage(props: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ embedded?: string }>;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full flex items-center justify-center p-6 text-xs text-stone-500">
+          Widget wird geladen...
+        </div>
+      }
+    >
+      <EmbedSalonContent {...props} />
+    </Suspense>
   );
 }

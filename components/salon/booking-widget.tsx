@@ -27,7 +27,11 @@ import {
   formatDuration,
   formatEuro,
 } from "@/lib/salon/calculator";
-import { getOffsetDateStr } from "@/lib/salon/seed-data";
+import {
+  DEFAULT_ANCHOR_DATE,
+  getClientTodayDateStr,
+  getOffsetDateStr,
+} from "@/lib/salon/seed-data";
 import { useSalonStore } from "@/lib/salon/store";
 import {
   Appointment,
@@ -130,10 +134,16 @@ export function BookingWidget({
   const [selectedMemberId, setSelectedMemberId] = useState<string | "any">(
     "any",
   );
-  const [selectedDate, setSelectedDate] = useState<string>(() =>
-    getOffsetDateStr(0),
-  );
+  const [anchorDate, setAnchorDate] = useState<string>(DEFAULT_ANCHOR_DATE);
+  const [selectedDate, setSelectedDate] = useState<string>(DEFAULT_ANCHOR_DATE);
   const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+
+  // Sync real client date after mount in browser (avoids Next.js prerender new Date() warnings)
+  useEffect(() => {
+    const today = getClientTodayDateStr();
+    setAnchorDate(today);
+    setSelectedDate(today);
+  }, []);
 
   // Customer Checkout state
   const [customerName, setCustomerName] = useState<string>("");
@@ -218,15 +228,17 @@ export function BookingWidget({
 
   const dateOptions = useMemo(() => {
     return Array.from({ length: 7 }, (_, idx) => {
-      const iso = getOffsetDateStr(idx);
+      const iso = getOffsetDateStr(idx, anchorDate);
       const [y, m, d] = iso.split("-").map(Number);
-      const dateObj = new Date(y, m - 1, d);
+      const dateObj = new Date(Date.UTC(y, m - 1, d));
       const weekdayShort = new Intl.DateTimeFormat("de-DE", {
         weekday: "short",
+        timeZone: "UTC",
       }).format(dateObj);
       const dayMonth = new Intl.DateTimeFormat("de-DE", {
         day: "2-digit",
         month: "2-digit",
+        timeZone: "UTC",
       }).format(dateObj);
       return {
         iso,
@@ -234,7 +246,7 @@ export function BookingWidget({
         subLabel: dayMonth,
       };
     });
-  }, []);
+  }, [anchorDate]);
 
   const availableSlots = useMemo(() => {
     if (!selectedService || !quote) return [];

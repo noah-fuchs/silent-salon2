@@ -10,9 +10,33 @@ import {
   WorkingHoursRule,
 } from "./types";
 
-export function getOffsetDateStr(offsetDays = 0): string {
+export const DEFAULT_ANCHOR_DATE = "2026-10-17";
+
+/**
+ * Deterministic date offset generator that does not trigger Next.js prerender
+ * warnings. Takes an explicit base date (defaulting to DEFAULT_ANCHOR_DATE).
+ */
+export function getOffsetDateStr(
+  offsetDays = 0,
+  baseDateStr = DEFAULT_ANCHOR_DATE,
+): string {
+  const [y, m, d] = baseDateStr.split("-").map(Number);
+  const target = new Date(Date.UTC(y, m - 1, d + offsetDays));
+  const year = target.getUTCFullYear();
+  const month = String(target.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(target.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Returns today's ISO date string in the browser (called strictly in useEffect),
+ * or DEFAULT_ANCHOR_DATE during SSR.
+ */
+export function getClientTodayDateStr(): string {
+  if (typeof window === "undefined") {
+    return DEFAULT_ANCHOR_DATE;
+  }
   const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
@@ -811,7 +835,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Iced Matcha Latte (Hafermilch)",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "delivered",
-      createdAt: new Date(Date.now() - 86400000 * 3).toISOString(),
+      createdAt: "2026-10-14T08:30:00.000Z",
     },
     {
       id: "appt-102",
@@ -855,7 +879,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Cappuccino mit Hafermilch",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "scheduled",
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      createdAt: "2026-10-15T14:45:00.000Z",
     },
     {
       id: "appt-103",
@@ -895,7 +919,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Doppelter Espresso + Stilles Wasser",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "delivered",
-      createdAt: new Date(Date.now() - 86400000 * 4).toISOString(),
+      createdAt: "2026-10-13T09:15:00.000Z",
     },
     {
       id: "appt-104",
@@ -936,7 +960,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Crémant Rosé / Wasser",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "scheduled",
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+      createdAt: "2026-10-16T11:00:00.000Z",
     },
     {
       id: "appt-105",
@@ -977,7 +1001,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Hafer-Latte",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "delivered",
-      createdAt: new Date(Date.now() - 86400000 * 5).toISOString(),
+      createdAt: "2026-10-12T16:20:00.000Z",
     },
     {
       id: "appt-106",
@@ -1023,7 +1047,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Frischer Minz-Ingwer-Tee",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "delivered",
-      createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+      createdAt: "2026-10-15T10:10:00.000Z",
     },
     // Urban Craft Appointment (Tenant #2)
     {
@@ -1061,7 +1085,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Siebträger Espresso",
       reminder24hStatus: "delivered",
       reminder2hSmsStatus: "delivered",
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+      createdAt: "2026-10-16T14:00:00.000Z",
     },
     {
       id: "appt-107",
@@ -1102,7 +1126,7 @@ export function createInitialAppointments(): Appointment[] {
       beverageSnapshot: "Hafer-Cappuccino",
       reminder24hStatus: "scheduled",
       reminder2hSmsStatus: "scheduled",
-      createdAt: new Date(Date.now() - 86400000 * 1).toISOString(),
+      createdAt: "2026-10-16T16:30:00.000Z",
     },
   ];
 }

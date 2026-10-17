@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Calendar,
   Clock,
@@ -26,7 +26,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { formatDuration, formatEuro } from "@/lib/salon/calculator";
-import { getOffsetDateStr } from "@/lib/salon/seed-data";
+import {
+  DEFAULT_ANCHOR_DATE,
+  getClientTodayDateStr,
+  getOffsetDateStr,
+} from "@/lib/salon/seed-data";
 import { useSalonStore } from "@/lib/salon/store";
 import { AppointmentStatus } from "@/lib/salon/types";
 
@@ -61,15 +65,21 @@ export function SalonDashboard({
   const [activeTab, setActiveTab] = useState<
     "schedule" | "catalog" | "crm" | "embed"
   >("schedule");
-  const [selectedDate, setSelectedDate] = useState<string>(() =>
-    getOffsetDateStr(0),
-  );
+  const [anchorDate, setAnchorDate] = useState<string>(DEFAULT_ANCHOR_DATE);
+  const [selectedDate, setSelectedDate] = useState<string>(DEFAULT_ANCHOR_DATE);
   const [selectedMemberFilter, setSelectedMemberFilter] = useState<
     string | "all"
   >("all");
   const [deviceViewMode, setDeviceViewMode] = useState<"reception" | "pocket">(
     "reception",
   );
+
+  // Sync real client date after mount in browser (avoids Next.js prerender new Date() warnings)
+  useEffect(() => {
+    const today = getClientTodayDateStr();
+    setAnchorDate(today);
+    setSelectedDate(today);
+  }, []);
 
   // Quick Time-off Blocker form state
   const [showBlockerForm, setShowBlockerForm] = useState(false);
@@ -159,9 +169,9 @@ export function SalonDashboard({
 
   const dateButtons = useMemo(() => {
     return [-1, 0, 1, 2, 3].map((offset) => {
-      const iso = getOffsetDateStr(offset);
+      const iso = getOffsetDateStr(offset, anchorDate);
       const [y, m, d] = iso.split("-").map(Number);
-      const dateObj = new Date(y, m - 1, d);
+      const dateObj = new Date(Date.UTC(y, m - 1, d));
       const label =
         offset === -1
           ? "Gestern"
@@ -169,16 +179,18 @@ export function SalonDashboard({
             ? "Heute"
             : offset === 1
               ? "Morgen"
-              : new Intl.DateTimeFormat("de-DE", { weekday: "short" }).format(
-                  dateObj,
-                );
+              : new Intl.DateTimeFormat("de-DE", {
+                  weekday: "short",
+                  timeZone: "UTC",
+                }).format(dateObj);
       const formatted = new Intl.DateTimeFormat("de-DE", {
         day: "2-digit",
         month: "2-digit",
+        timeZone: "UTC",
       }).format(dateObj);
       return { iso, label, formatted };
     });
-  }, []);
+  }, [anchorDate]);
 
   const handleAddBlocker = (e: React.FormEvent) => {
     e.preventDefault();
@@ -318,7 +330,7 @@ export function SalonDashboard({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 p-4 sm:px-6 bg-stone-50/40 dark:bg-stone-900/30 border-b border-stone-200 dark:border-stone-800">
         <div className="rounded-2xl border border-stone-200/80 dark:border-stone-800 bg-white dark:bg-stone-900 p-3.5">
           <div className="text-[11px] font-medium text-stone-500 flex items-center justify-between">
-            <span>Tagesumsatz ({selectedDate === getOffsetDateStr(0) ? "Heute" : selectedDate})</span>
+            <span>Tagesumsatz ({selectedDate === anchorDate ? "Heute" : selectedDate})</span>
             <CreditCard className="w-3.5 h-3.5 text-stone-400" />
           </div>
           <div className="text-lg sm:text-xl font-bold mt-1">
